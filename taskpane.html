@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tab Groups</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f3f5f4;
+    --line: #d6dcd9;
+    --text: #1f2a26;
+    --muted: #5f6d67;
+    --accent: #107c41;        /* Excel green */
+    --accent-soft: #e3f1e9;
+    --danger: #b3261e;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e2321; --surface: #272d2a; --line: #3a423e;
+      --text: #e7ece9; --muted: #a3b0aa; --accent: #4cc283;
+      --accent-soft: #24382d; --danger: #f2827a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 14px 12px 24px;
+    background: var(--bg); color: var(--text);
+    font: 14px/1.4 "Segoe UI", -apple-system, system-ui, sans-serif;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  h1 { font-size: 17px; font-weight: 600; margin: 0; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .switch { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .hint { font-size: 12px; color: var(--muted); margin: 6px 0 12px; }
+
+  .add { display: flex; gap: 6px; margin-bottom: 14px; }
+  .add input {
+    flex: 1; min-width: 0; padding: 6px 8px;
+    border: 1px solid var(--line); border-radius: 4px; background: var(--bg);
+  }
+  .btn {
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+    border-radius: 4px; padding: 6px 12px; cursor: pointer; font-weight: 600;
+  }
+  @media (prefers-color-scheme: dark) { .btn { color: #0f1a14; } }
+
+  /* A group header is drawn like an Excel sheet tab: flat, with a colored foot. */
+  .group { margin-bottom: 6px; }
+  .ghead {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--surface); border-bottom: 3px solid var(--gc, var(--line));
+    border-radius: 4px 4px 0 0;
+  }
+  .gtoggle {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+    background: none; border: 0; padding: 8px 10px; cursor: pointer; text-align: left;
+  }
+  .caret { width: 10px; transition: transform .15s; color: var(--muted); flex: none; }
+  .open .caret { transform: rotate(90deg); }
+  .gname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .count { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .icon {
+    background: none; border: 0; cursor: pointer; color: var(--muted);
+    width: 28px; height: 28px; border-radius: 4px; flex: none;
+  }
+  .icon:hover { background: var(--bg); color: var(--text); }
+  .icon.del:hover { color: var(--danger); }
+  .ghead input { flex: 1; margin: 4px; padding: 4px 6px; border: 1px solid var(--accent); border-radius: 3px; background: var(--bg); }
+
+  .swatches { display: flex; gap: 6px; padding: 8px 10px; background: var(--surface); }
+  .sw { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+  .sw[aria-pressed="true"] { border-color: var(--text); }
+
+  ul { list-style: none; margin: 0; padding: 4px 0 6px 18px; border-left: 1px solid var(--line); margin-left: 14px; }
+  li { display: flex; align-items: center; gap: 4px; }
+  .sheet {
+    flex: 1; min-width: 0; text-align: left; background: none; border: 0;
+    padding: 5px 8px; border-radius: 4px; cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sheet:hover { background: var(--surface); }
+  .sheet.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .sheet .tag { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .move {
+    width: 26px; padding: 2px; border: 1px solid transparent; border-radius: 4px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .move:hover { border-color: var(--line); }
+  .empty { color: var(--muted); font-size: 13px; padding: 4px 8px; }
+
+  #status { margin-top: 12px; font-size: 12px; color: var(--danger); min-height: 1em; }
+  @media (prefers-reduced-motion: reduce) { .caret { transition: none; } }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>Tab groups</h1>
+    <label class="switch"><input type="checkbox" id="focus"> Show only this group</label>
+  </div>
+  <p class="hint" id="hint">Open a group to see its tabs. Use the ⋯ menu beside a tab to move it into a group.</p>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="newName" placeholder="New group name, e.g. Purchasing" aria-label="New group name">
+    <button class="btn" type="submit">Add group</button>
+  </form>
+
+  <div id="groups"></div>
+  <div id="status" role="status"></div>
+
+<script>
+const KEY = "tabGroups.v1";
+const UNGROUPED = "__none";
+const COLORS = ["#107C41", "#2B6CB0", "#C05621", "#805AD5", "#B7791F", "#C53030", "#2C7A7B"];
+
+let state = { groups: [], focus: false, hiddenByUs: [] };
+let sheets = [];          // [{id, name, visibility, position}] in workbook order
+let activeId = null;
+let openGroup = null;     // id of expanded group
+let editing = null;       // group id being renamed
+let coloring = null;      // group id showing color picker
+let busy = false;
+
+/* ---------- persistence (stored inside the workbook) ---------- */
+function loadState() {
+  const saved = Office.context.document.settings.get(KEY);
+  if (saved) state = Object.assign(state, saved);
+}
+function saveState() {
+  Office.context.document.settings.set(KEY, state);
+  Office.context.document.settings.saveAsync(r => {
+    if (r.status !== Office.AsyncResultStatus.Succeeded) showError("Couldn't save groups: " + r.error.message);
+  });
+}
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+function el(tag, props = {}, kids = []) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "on") for (const [ev, fn] of Object.entries(v)) n.addEventListener(ev, fn);
+    else if (k === "style") Object.assign(n.style, v);
+    else if (k in n) n[k] = v; else n.setAttribute(k, v);
+  }
+  for (const c of [].concat(kids)) if (c != null) n.append(c);
+  return n;
+}
+function showError(msg) { $("status").textContent = msg || ""; }
+function groupOf(sheetId) {
+  const g = state.groups.find(g => g.sheetIds.includes(sheetId));
+  return g ? g.id : UNGROUPED;
+}
+function membersOf(groupId) {
+  if (groupId === UNGROUPED) {
+    const grouped = new Set(state.groups.flatMap(g => g.sheetIds));
+    return sheets.filter(s => !grouped.has(s.id));
+  }
+  const g = state.groups.find(g => g.id === groupId);
+  const ids = new Set(g ? g.sheetIds : []);
+  return sheets.filter(s => ids.has(s.id));   // keep workbook order
+}
+async function guarded(fn) {
+  if (busy) return;
+  busy = true; showError("");
+  try { await fn(); } catch (e) { showError(e.message || String(e)); }
+  finally { busy = false; await refresh(); }
+}
+
+/* ---------- read workbook ---------- */
+async function refresh() {
+  await Excel.run(async ctx => {
+    const ws = ctx.workbook.worksheets;
+    ws.load("items/id,items/name,items/visibility,items/position");
+    const act = ws.getActiveWorksheet(); act.load("id");
+    await ctx.sync();
+    sheets = ws.items.map(s => ({ id: s.id, name: s.name, visibility: s.visibility, position: s.position }))
+                     .sort((a, b) => a.position - b.position);
+    activeId = act.id;
+  });
+  // drop deleted sheets from groups
+  const live = new Set(sheets.map(s => s.id));
+  let changed = false;
+  for (const g of state.groups) {
+    const before = g.sheetIds.length;
+    g.sheetIds = g.sheetIds.filter(id => live.has(id));
+    if (g.sheetIds.length !== before) changed = true;
+  }
+  const hb = state.hiddenByUs.filter(id => live.has(id));
+  if (hb.length !== state.hiddenByUs.length) { state.hiddenByUs = hb; changed = true; }
+  if (changed) saveState();
+  if (openGroup === null && activeId) openGroup = groupOf(activeId);
+  render();
+}
+
+/* ---------- actions ---------- */
+async function goTo(sheetId) {
+  await guarded(async () => {
+    if (state.focus) { await applyFocus(groupOf(sheetId), sheetId); return; }
+    await Excel.run(async ctx => {
+      const s = ctx.workbook.worksheets.getItem(sheetId);
+      s.visibility = Excel.SheetVisibility.visible;
+      s.activate();
+      await ctx.sync();
+    });
+    state.hiddenByUs = state.hiddenByUs.filter(id => id !== sheetId);
+    saveState();
+  });
+}
+
+// Show only the tabs in groupId; hide the rest (and remember which ones we hid).
+async function applyFocus(groupId, targetId) {
+  const members = membersOf(groupId);
+  if (!members.length) return;
+  const memberIds = new Set(members.map(s => s.id));
+  const target = memberIds.has(targetId) ? targetId
+    : (members.find(s => s.visibility === "Visible") || members[0]).id;
+
+  await Excel.run(async ctx => {
+    const ws = ctx.workbook.worksheets;
+    // 1. reveal members we hid earlier, plus the target, then activate the target
+    for (const s of members) {
+      if ((state.hiddenByUs.includes(s.id) || s.id === target) && s.visibility === "Hidden") {
+        ws.getItem(s.id).visibility = Excel.SheetVisibility.visible;
+      }
+    }
+    ws.getItem(target).activate();
+    await ctx.sync();
+    // 2. hide every visible non-member
+    for (const s of sheets) {
+      if (!memberIds.has(s.id) && s.visibility === "Visible") {
+        ws.getItem(s.id).visibility = Excel.SheetVisibility.hidden;
+        if (!state.hiddenByUs.includes(s.id)) state.hiddenByUs.push(s.id);
+      }
+    }
+    await ctx.sync();
+  });
+  state.hiddenByUs = state.hiddenByUs.filter(id => !memberIds.has(id));
+  openGroup = groupId;
+  saveState();
+}
+
+// Unhide only the tabs this add-in hid; tabs you hid yourself stay hidden.
+async function clearFocus() {
+  if (!state.hiddenByUs.length) return;
+  await Excel.run(async ctx => {
+    for (const id of state.hiddenByUs) ctx.workbook.worksheets.getItem(id).visibility = Excel.SheetVisibility.visible;
+    await ctx.sync();
+  });
+  state.hiddenByUs = [];
+  saveState();
+}
+
+function addGroup(name) {
+  const id = "g" + Date.now().toString(36);
+  state.groups.push({ id, name, color: COLORS[state.groups.length % COLORS.length], sheetIds: [] });
+  openGroup = id;
+  saveState();
+  render();
+}
+
+async function deleteGroup(groupId) {
+  const g = state.groups.find(g => g.id === groupId);
+  state.groups = state.groups.filter(x => x.id !== groupId);
+  saveState();
+  if (state.focus && openGroup === groupId) await guarded(() => applyFocus(UNGROUPED, activeId));
+  else render();
+  if (g) showError("");
+}
+
+async function moveSheet(sheetId, toGroup) {
+  for (const g of state.groups) g.sheetIds = g.sheetIds.filter(id => id !== sheetId);
+  const target = state.groups.find(g => g.id === toGroup);
+  if (target) target.sheetIds.push(sheetId);
+  saveState();
+  await guarded(async () => {
+    if (target) await colorTabs(target);
+    if (state.focus) await applyFocus(openGroup, activeId);
+  });
+}
+
+// Color the real Excel tabs to match the group, so the tab bar reads the same way.
+async function colorTabs(group) {
+  if (!group.sheetIds.length) return;
+  await Excel.run(async ctx => {
+    for (const id of group.sheetIds) ctx.workbook.worksheets.getItem(id).tabColor = group.color;
+    await ctx.sync();
+  });
+}
+
+/* ---------- render ---------- */
+function render() {
+  const root = $("groups");
+  root.replaceChildren();
+  const all = [...state.groups, { id: UNGROUPED, name: "Ungrouped", color: null }];
+
+  for (const g of all) {
+    const members = membersOf(g.id);
+    if (g.id === UNGROUPED && !members.length && state.groups.length) continue;
+    const isOpen = openGroup === g.id;
+    const wrap = el("section", { className: "group" + (isOpen ? " open" : "") });
+
+    // header
+    const head = el("div", { className: "ghead" });
+    head.style.setProperty("--gc", g.color || "var(--line)");
+    if (editing === g.id) {
+      const inp = el("input", { value: g.name, "aria-label": "Group name" });
+      const commit = () => {
+        const v = inp.value.trim();
+        if (v) { g.name = v; saveState(); }
+        editing = null; render();
+      };
+      inp.addEventListener("keydown", e => {
+        if (e.key === "Enter") commit();
+        if (e.key === "Escape") { editing = null; render(); }
+      });
+      inp.addEventListener("blur", commit);
+      head.append(inp);
+      setTimeout(() => { inp.focus(); inp.select(); });
+    } else {
+      head.append(el("button", {
+        className: "gtoggle", "aria-expanded": String(isOpen),
+        on: { click: () => toggleGroup(g.id) }
+      }, [
+        el("span", { className: "caret", "aria-hidden": "true", textContent: "▶" }),
+        el("span", { className: "gname", textContent: g.name }),
+        el("span", { className: "count", textContent: members.length })
+      ]));
+      if (g.id !== UNGROUPED) {
+        head.append(
+          el("button", { className: "icon", title: "Group color", "aria-label": "Change color of " + g.name, textContent: "◐",
+            on: { click: () => { coloring = coloring === g.id ? null : g.id; render(); } } }),
+          el("button", { className: "icon", title: "Rename", "aria-label": "Rename " + g.name, textContent: "✎",
+            on: { click: () => { editing = g.id; render(); } } }),
+          el("button", { className: "icon del", title: "Delete group (tabs are kept)", "aria-label": "Delete group " + g.name, textContent: "×",
+            on: { click: () => deleteGroup(g.id) } })
+        );
+      }
+    }
+    wrap.append(head);
+
+    if (coloring === g.id) {
+      const row = el("div", { className: "swatches" });
+      for (const c of COLORS) {
+        row.append(el("button", {
+          className: "sw", style: { background: c }, "aria-label": "Color " + c, "aria-pressed": String(g.color === c),
+          on: { click: () => { g.color = c; coloring = null; saveState(); guarded(() => colorTabs(g)); } }
+        }));
+      }
+      wrap.append(row);
+    }
+
+    if (isOpen) {
+      const list = el("ul");
+      if (!members.length) list.append(el("li", { className: "empty", textContent: "No tabs yet. Use ⋯ beside a tab to move it here." }));
+      for (const s of members) {
+        const hiddenByUser = s.visibility !== "Visible" && !state.hiddenByUs.includes(s.id);
+        const btn = el("button", {
+          className: "sheet" + (s.id === activeId ? " active" : ""),
+          title: s.name, on: { click: () => goTo(s.id) }
+        }, [s.name, hiddenByUser ? el("span", { className: "tag", textContent: s.visibility === "VeryHidden" ? "very hidden" : "hidden" }) : null]);
+        if (s.visibility === "VeryHidden") btn.disabled = true;
+
+        const move = el("select", {
+          className: "move", title: "Move to group", "aria-label": "Move " + s.name + " to group",
+          on: { change: e => moveSheet(s.id, e.target.value) }
+        }, [el("option", { value: "", textContent: "⋯", disabled: true, selected: true })]);
+        for (const opt of [...state.groups, { id: UNGROUPED, name: "Ungrouped" }]) {
+          if (opt.id !== g.id) move.append(el("option", { value: opt.id, textContent: "Move to " + opt.name }));
+        }
+        list.append(el("li", {}, [btn, move]));
+      }
+      wrap.append(list);
+    }
+    root.append(wrap);
+  }
+  if (!state.groups.length) {
+    root.prepend(el("p", { className: "hint", textContent: "Start by adding a group above, then move tabs into it." }));
+  }
+  $("focus").checked = !!state.focus;
+}
+
+async function toggleGroup(groupId) {
+  if (openGroup === groupId) { openGroup = null; render(); return; }
+  openGroup = groupId;
+  if (state.focus) await guarded(() => applyFocus(groupId, activeId));
+  else render();
+}
+
+/* ---------- startup ---------- */
+Office.onReady(async info => {
+  if (info.host !== Office.HostType.Excel) { showError("This add-in runs in Excel."); return; }
+  loadState();
+
+  $("addForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const name = $("newName").value.trim();
+    if (!name) return;
+    $("newName").value = "";
+    addGroup(name);
+  });
+
+  $("focus").addEventListener("change", e => {
+    state.focus = e.target.checked;
+    saveState();
+    guarded(async () => {
+      if (state.focus) await applyFocus(openGroup || groupOf(activeId), activeId);
+      else await clearFocus();
+    });
+  });
+
+  try {
+    await refresh();
+    await Excel.run(async ctx => {
+      const ws = ctx.workbook.worksheets;
+      ws.onAdded.add(() => refresh());
+      ws.onDeleted.add(() => refresh());
+      ws.onActivated.add(async ev => {
+        activeId = ev.worksheetId;
+        if (!busy) openGroup = groupOf(activeId);
+        render();
+      });
+      if (ws.onNameChanged) ws.onNameChanged.add(() => refresh());
+      await ctx.sync();
+    });
+  } catch (e) { showError(e.message || String(e)); }
+});
+</script>
+</body>
+</html>

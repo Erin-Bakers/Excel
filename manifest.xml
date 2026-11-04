@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hosted on GitHub Pages: Erin-Bakers/Excel repo, tab-groups folder -->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>efb611d6-9593-4e31-90b9-b2628306e151</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Erin Baker's</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Tab Groups"/>
+  <Description DefaultValue="Group worksheet tabs under master groups and jump to any tab."/>
+  <IconUrl DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/icon-64.png"/>
+  <SupportUrl DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/taskpane.html"/>
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="ExcelApi" MinVersion="1.7"/>
+    </Sets>
+  </Requirements>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="TabGroups.Group">
+                <Label resid="TabGroups.GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16"/>
+                  <bt:Image size="32" resid="Icon.32"/>
+                  <bt:Image size="80" resid="Icon.80"/>
+                </Icon>
+                <Control xsi:type="Button" id="TabGroups.Open">
+                  <Label resid="TabGroups.ButtonLabel"/>
+                  <Supertip>
+                    <Title resid="TabGroups.ButtonLabel"/>
+                    <Description resid="TabGroups.ButtonTip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>TabGroupsPane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://erin-bakers.github.io/Excel/tab-groups/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="TabGroups.GroupLabel" DefaultValue="Tab Groups"/>
+        <bt:String id="TabGroups.ButtonLabel" DefaultValue="Tab Groups"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="TabGroups.ButtonTip" DefaultValue="Open the sidebar to browse tabs by group."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
