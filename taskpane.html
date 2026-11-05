@@ -3,168 +3,206 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tab Groups</title>
+<title>Tab Folders</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <style>
   :root {
-    --bg: #ffffff;
-    --surface: #f3f5f4;
-    --line: #d6dcd9;
-    --text: #1f2a26;
-    --muted: #5f6d67;
-    --accent: #107c41;        /* Excel green */
-    --accent-soft: #e3f1e9;
-    --danger: #b3261e;
+    --bg: #ffffff; --surface: #f3f5f4; --card: #ffffff; --line: #d6dcd9;
+    --text: #1f2a26; --muted: #5f6d67; --accent: #107c41; --accent-soft: #e3f1e9;
+    --danger: #b3261e; --shadow: 0 4px 14px rgba(0,0,0,.12);
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1e2321; --surface: #272d2a; --line: #3a423e;
-      --text: #e7ece9; --muted: #a3b0aa; --accent: #4cc283;
-      --accent-soft: #24382d; --danger: #f2827a;
+      --bg: #1e2321; --surface: #272d2a; --card: #232927; --line: #3a423e;
+      --text: #e7ece9; --muted: #a3b0aa; --accent: #4cc283; --accent-soft: #24382d;
+      --danger: #f2827a; --shadow: 0 4px 14px rgba(0,0,0,.45);
       color-scheme: dark;
     }
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 14px 12px 24px;
-    background: var(--bg); color: var(--text);
-    font: 14px/1.4 "Segoe UI", -apple-system, system-ui, sans-serif;
-  }
+  body { margin: 0; padding: 12px 10px 24px; background: var(--bg); color: var(--text);
+         font: 14px/1.4 "Segoe UI", -apple-system, system-ui, sans-serif; }
   button, input, select { font: inherit; color: inherit; }
-  button:focus-visible, input:focus-visible, select:focus-visible {
-    outline: 2px solid var(--accent); outline-offset: 1px;
-  }
-  h1 { font-size: 17px; font-weight: 600; margin: 0; }
-  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .switch { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
-  .hint { font-size: 12px; color: var(--muted); margin: 6px 0 12px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  svg { flex: none; }
 
-  .add { display: flex; gap: 6px; margin-bottom: 14px; }
-  .add input {
-    flex: 1; min-width: 0; padding: 6px 8px;
-    border: 1px solid var(--line); border-radius: 4px; background: var(--bg);
-  }
-  .btn {
-    border: 1px solid var(--accent); background: var(--accent); color: #fff;
-    border-radius: 4px; padding: 6px 12px; cursor: pointer; font-weight: 600;
-  }
-  @media (prefers-color-scheme: dark) { .btn { color: #0f1a14; } }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0; }
+  .link { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
+  .link:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .link:disabled { opacity: .45; cursor: default; }
+  .showing { font-size: 12px; color: var(--muted); min-height: 18px; margin-bottom: 8px; }
+  .showing b { color: var(--accent); font-weight: 600; }
 
-  /* A group header is drawn like an Excel sheet tab: flat, with a colored foot. */
-  .group { margin-bottom: 6px; }
-  .ghead {
-    display: flex; align-items: center; gap: 4px;
-    background: var(--surface); border-bottom: 3px solid var(--gc, var(--line));
-    border-radius: 4px 4px 0 0;
-  }
-  .gtoggle {
-    flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
-    background: none; border: 0; padding: 8px 10px; cursor: pointer; text-align: left;
-  }
-  .caret { width: 10px; transition: transform .15s; color: var(--muted); flex: none; }
-  .open .caret { transform: rotate(90deg); }
-  .gname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .count { color: var(--muted); font-size: 12px; margin-left: auto; }
-  .icon {
-    background: none; border: 0; cursor: pointer; color: var(--muted);
-    width: 28px; height: 28px; border-radius: 4px; flex: none;
-  }
-  .icon:hover { background: var(--bg); color: var(--text); }
-  .icon.del:hover { color: var(--danger); }
-  .ghead input { flex: 1; margin: 4px; padding: 4px 6px; border: 1px solid var(--accent); border-radius: 3px; background: var(--bg); }
+  /* Favorites-bar style folder row */
+  .bar { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--surface); border-radius: 6px; }
+  .chip { display: flex; align-items: center; gap: 6px; max-width: 100%;
+          background: none; border: 1px solid transparent; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+  .chip:hover { background: var(--card); border-color: var(--line); }
+  .chip[aria-expanded="true"] { background: var(--card); border-color: var(--accent); }
+  .chip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip .ct { font-size: 11px; color: var(--muted); }
+  .chip.add { color: var(--muted); }
+  .bar input { flex: 1 1 140px; min-width: 0; padding: 4px 6px; border: 1px solid var(--accent); border-radius: 4px; background: var(--card); }
 
-  .swatches { display: flex; gap: 6px; padding: 8px 10px; background: var(--surface); }
+  /* Dropdown card */
+  .drop { margin-top: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+          box-shadow: var(--shadow); border-top: 3px solid var(--fc, var(--accent)); }
+  .dhead { display: flex; align-items: center; gap: 2px; padding: 6px 6px 6px 10px; border-bottom: 1px solid var(--line); }
+  .crumbs { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-weight: 600; }
+  .crumb { background: none; border: 0; padding: 2px 3px; border-radius: 3px; cursor: pointer; color: var(--muted); font-weight: 600; }
+  .crumb:hover { color: var(--accent); }
+  .crumb.here { color: var(--text); cursor: default; }
+  .sep { color: var(--muted); }
+  .dhead input { flex: 1; min-width: 0; padding: 3px 6px; border: 1px solid var(--accent); border-radius: 3px; background: var(--card); }
+  .icon { background: none; border: 0; cursor: pointer; color: var(--muted); width: 28px; height: 28px; border-radius: 4px;
+          display: inline-flex; align-items: center; justify-content: center; }
+  .icon:hover { background: var(--surface); color: var(--text); }
+  .icon.del:hover, .confirm { color: var(--danger); }
+  .confirm { background: none; border: 1px solid var(--danger); border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 12px; }
+
+  .swatches { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   .sw { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
   .sw[aria-pressed="true"] { border-color: var(--text); }
 
-  ul { list-style: none; margin: 0; padding: 4px 0 6px 18px; border-left: 1px solid var(--line); margin-left: 14px; }
-  li { display: flex; align-items: center; gap: 4px; }
-  .sheet {
-    flex: 1; min-width: 0; text-align: left; background: none; border: 0;
-    padding: 5px 8px; border-radius: 4px; cursor: pointer;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .sheet:hover { background: var(--surface); }
-  .sheet.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-  .sheet .tag { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; }
-  .move {
-    width: 26px; padding: 2px; border: 1px solid transparent; border-radius: 4px;
-    background: transparent; color: var(--muted); cursor: pointer;
-  }
+  ul { list-style: none; margin: 0; padding: 4px; }
+  li { display: flex; align-items: center; gap: 2px; }
+  .row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; text-align: left;
+         background: none; border: 0; padding: 6px 8px; border-radius: 4px; cursor: pointer; }
+  .row:hover { background: var(--surface); }
+  .row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .ct { font-size: 11px; color: var(--muted); }
+  .row.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .row .tag { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .row:disabled { opacity: .5; cursor: default; }
+  .move { width: 26px; padding: 2px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
   .move:hover { border-color: var(--line); }
-  .empty { color: var(--muted); font-size: 13px; padding: 4px 8px; }
+  .newsub { display: flex; gap: 4px; padding: 6px 8px; }
+  .newsub input { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--accent); border-radius: 4px; background: var(--card); }
+  .empty { color: var(--muted); font-size: 13px; padding: 6px 8px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 4px 8px; }
 
-  #status { margin-top: 12px; font-size: 12px; color: var(--danger); min-height: 1em; }
-  @media (prefers-reduced-motion: reduce) { .caret { transition: none; } }
+  .foot { margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .foot label { display: flex; gap: 6px; align-items: flex-start; cursor: pointer; }
+  #status { margin-top: 10px; font-size: 12px; color: var(--danger); min-height: 1em; }
 </style>
 </head>
 <body>
   <div class="top">
-    <h1>Tab groups</h1>
-    <label class="switch"><input type="checkbox" id="focus"> Show only this group</label>
+    <h1>Tab folders</h1>
+    <button class="link" id="showAll" type="button">Show all tabs</button>
   </div>
-  <p class="hint" id="hint">Open a group to see its tabs. Use the ⋯ menu beside a tab to move it into a group.</p>
-
-  <form class="add" id="addForm" autocomplete="off">
-    <input id="newName" placeholder="New group name, e.g. Purchasing" aria-label="New group name">
-    <button class="btn" type="submit">Add group</button>
-  </form>
-
-  <div id="groups"></div>
+  <div class="showing" id="showing"></div>
+  <div class="bar" id="bar"></div>
+  <div id="drop"></div>
+  <div class="foot">
+    <label><input type="checkbox" id="filter"> When I open a folder, show only its tabs in Excel's tab bar</label>
+  </div>
   <div id="status" role="status"></div>
 
 <script>
-const KEY = "tabGroups.v1";
-const UNGROUPED = "__none";
+const KEY = "tabFolders.v2", OLD_KEY = "tabGroups.v1";
+const UNFILED = "__unfiled";
 const COLORS = ["#107C41", "#2B6CB0", "#C05621", "#805AD5", "#B7791F", "#C53030", "#2C7A7B"];
 
-let state = { groups: [], focus: false, hiddenByUs: [] };
-let sheets = [];          // [{id, name, visibility, position}] in workbook order
-let activeId = null;
-let openGroup = null;     // id of expanded group
-let editing = null;       // group id being renamed
-let coloring = null;      // group id showing color picker
-let busy = false;
+let state = { folders: [], assign: {}, filter: true, hiddenByUs: [], filtered: null };
+let sheets = [], activeId = null, busy = false;
+const ui = { open: null, view: null, adding: null, renaming: null, coloring: false, confirmDel: null };
 
-/* ---------- persistence (stored inside the workbook) ---------- */
+/* ---------- icons ---------- */
+const ICON = {
+  folder: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5h4l1.5 1.5h7.5v8h-13z" fill="FILL" stroke="STROKE" stroke-width="1"/></svg>',
+  sheet: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11" rx="1" fill="none" stroke="currentColor"/><path d="M1.5 5h11M1.5 8.5h11M5 1.5v11" stroke="currentColor" stroke-width=".8"/></svg>',
+  chev: '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  plus: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.4"/></svg>',
+  pen: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 12l1-3.5L9.5 2 12 4.5 5.5 11z" fill="none" stroke="currentColor"/></svg>',
+  dot: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor"/><path d="M7 2a5 5 0 0 1 0 10z" fill="currentColor"/></svg>',
+  x: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.4"/></svg>'
+};
+function icon(name, color) {
+  const span = document.createElement("span");
+  span.style.display = "inline-flex";
+  span.innerHTML = ICON[name].replace("FILL", color ? color + "33" : "none").replace("STROKE", color || "currentColor");
+  return span;
+}
+
+/* ---------- persistence ---------- */
 function loadState() {
-  const saved = Office.context.document.settings.get(KEY);
-  if (saved) state = Object.assign(state, saved);
+  const s = Office.context.document.settings;
+  const saved = s.get(KEY);
+  if (saved) { state = Object.assign(state, saved); return; }
+  const old = s.get(OLD_KEY);              // migrate groups from the first version
+  if (old && old.groups) {
+    state.folders = old.groups.map(g => ({ id: g.id, name: g.name, color: g.color, parentId: null }));
+    for (const g of old.groups) for (const id of g.sheetIds) state.assign[id] = g.id;
+    state.hiddenByUs = old.hiddenByUs || [];
+    saveState();
+  }
 }
 function saveState() {
   Office.context.document.settings.set(KEY, state);
   Office.context.document.settings.saveAsync(r => {
-    if (r.status !== Office.AsyncResultStatus.Succeeded) showError("Couldn't save groups: " + r.error.message);
+    if (r.status !== Office.AsyncResultStatus.Succeeded) showError("Couldn't save folders: " + r.error.message);
   });
 }
 
-/* ---------- helpers ---------- */
+/* ---------- tree helpers ---------- */
 const $ = id => document.getElementById(id);
+const folder = id => state.folders.find(f => f.id === id);
+const children = pid => state.folders.filter(f => f.parentId === pid);
+function descendants(id) {
+  const out = [], stack = [id];
+  while (stack.length) for (const c of children(stack.pop())) { out.push(c.id); stack.push(c.id); }
+  return out;
+}
+function rootOf(id) { let f = folder(id); while (f && f.parentId) f = folder(f.parentId); return f ? f.id : id; }
+function pathOf(id) {
+  if (id === UNFILED) return [{ id, name: "Unfiled" }];
+  const p = []; let f = folder(id);
+  while (f) { p.unshift(f); f = folder(f.parentId); }
+  return p;
+}
+const colorOf = id => (folder(rootOf(id)) || {}).color || null;
+function folderOfSheet(sid) { const f = state.assign[sid]; return f && folder(f) ? f : UNFILED; }
+const directTabs = fid => sheets.filter(s => folderOfSheet(s.id) === fid);
+function deepTabs(fid) {
+  if (fid === UNFILED) return directTabs(UNFILED);
+  const ids = new Set([fid, ...descendants(fid)]);
+  return sheets.filter(s => ids.has(folderOfSheet(s.id)));
+}
+function allFolderPaths() {   // depth-first list for the "move to" menu
+  const out = [];
+  (function walk(pid, depth) {
+    for (const f of children(pid)) { out.push({ id: f.id, label: "\u00A0\u00A0".repeat(depth) + f.name }); walk(f.id, depth + 1); }
+  })(null, 0);
+  return out;
+}
+
+/* ---------- small DOM helper ---------- */
 function el(tag, props = {}, kids = []) {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
     if (k === "on") for (const [ev, fn] of Object.entries(v)) n.addEventListener(ev, fn);
-    else if (k === "style") Object.assign(n.style, v);
-    else if (k in n) n[k] = v; else n.setAttribute(k, v);
+    else if (k in n && k !== "style") n[k] = v; else n.setAttribute(k, v);
   }
   for (const c of [].concat(kids)) if (c != null) n.append(c);
   return n;
 }
+function inlineInput(value, placeholder, onCommit, onCancel) {
+  let done = false;
+  const inp = el("input", { value, placeholder, "aria-label": placeholder });
+  const finish = ok => {
+    if (done) return; done = true;
+    const v = inp.value.trim();
+    ok && v ? onCommit(v) : onCancel();
+  };
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") finish(true); if (e.key === "Escape") finish(false); });
+  inp.addEventListener("blur", () => finish(true));
+  setTimeout(() => { inp.focus(); inp.select(); });
+  return inp;
+}
 function showError(msg) { $("status").textContent = msg || ""; }
-function groupOf(sheetId) {
-  const g = state.groups.find(g => g.sheetIds.includes(sheetId));
-  return g ? g.id : UNGROUPED;
-}
-function membersOf(groupId) {
-  if (groupId === UNGROUPED) {
-    const grouped = new Set(state.groups.flatMap(g => g.sheetIds));
-    return sheets.filter(s => !grouped.has(s.id));
-  }
-  const g = state.groups.find(g => g.id === groupId);
-  const ids = new Set(g ? g.sheetIds : []);
-  return sheets.filter(s => ids.has(s.id));   // keep workbook order
-}
 async function guarded(fn) {
   if (busy) return;
   busy = true; showError("");
@@ -183,213 +221,275 @@ async function refresh() {
                      .sort((a, b) => a.position - b.position);
     activeId = act.id;
   });
-  // drop deleted sheets from groups
   const live = new Set(sheets.map(s => s.id));
   let changed = false;
-  for (const g of state.groups) {
-    const before = g.sheetIds.length;
-    g.sheetIds = g.sheetIds.filter(id => live.has(id));
-    if (g.sheetIds.length !== before) changed = true;
-  }
+  for (const sid of Object.keys(state.assign)) if (!live.has(sid)) { delete state.assign[sid]; changed = true; }
   const hb = state.hiddenByUs.filter(id => live.has(id));
   if (hb.length !== state.hiddenByUs.length) { state.hiddenByUs = hb; changed = true; }
+  if (state.filtered && state.filtered !== UNFILED && !folder(state.filtered)) { state.filtered = null; changed = true; }
+  if (ui.view && ui.view !== UNFILED && !folder(ui.view)) { ui.view = ui.open = null; }
   if (changed) saveState();
-  if (openGroup === null && activeId) openGroup = groupOf(activeId);
   render();
 }
 
-/* ---------- actions ---------- */
-async function goTo(sheetId) {
-  await guarded(async () => {
-    if (state.focus) { await applyFocus(groupOf(sheetId), sheetId); return; }
-    await Excel.run(async ctx => {
-      const s = ctx.workbook.worksheets.getItem(sheetId);
-      s.visibility = Excel.SheetVisibility.visible;
-      s.activate();
-      await ctx.sync();
-    });
-    state.hiddenByUs = state.hiddenByUs.filter(id => id !== sheetId);
-    saveState();
-  });
-}
-
-// Show only the tabs in groupId; hide the rest (and remember which ones we hid).
-async function applyFocus(groupId, targetId) {
-  const members = membersOf(groupId);
-  if (!members.length) return;
-  const memberIds = new Set(members.map(s => s.id));
-  const target = memberIds.has(targetId) ? targetId
-    : (members.find(s => s.visibility === "Visible") || members[0]).id;
+/* ---------- tab bar filtering ---------- */
+async function applyFilter(fid, targetId) {
+  const members = deepTabs(fid).filter(s => s.visibility !== "VeryHidden");
+  if (!members.length) { showError("This folder has no tabs yet, so the tab bar wasn't changed."); return; }
+  const ids = new Set(members.map(s => s.id));
+  const target = ids.has(targetId) ? targetId
+    : (ids.has(activeId) ? activeId : (members.find(s => s.visibility === "Visible") || members[0]).id);
 
   await Excel.run(async ctx => {
     const ws = ctx.workbook.worksheets;
-    // 1. reveal members we hid earlier, plus the target, then activate the target
     for (const s of members) {
-      if ((state.hiddenByUs.includes(s.id) || s.id === target) && s.visibility === "Hidden") {
+      if (s.visibility === "Hidden" && (state.hiddenByUs.includes(s.id) || s.id === target)) {
         ws.getItem(s.id).visibility = Excel.SheetVisibility.visible;
       }
     }
     ws.getItem(target).activate();
     await ctx.sync();
-    // 2. hide every visible non-member
     for (const s of sheets) {
-      if (!memberIds.has(s.id) && s.visibility === "Visible") {
+      if (!ids.has(s.id) && s.visibility === "Visible") {
         ws.getItem(s.id).visibility = Excel.SheetVisibility.hidden;
         if (!state.hiddenByUs.includes(s.id)) state.hiddenByUs.push(s.id);
       }
     }
     await ctx.sync();
   });
-  state.hiddenByUs = state.hiddenByUs.filter(id => !memberIds.has(id));
-  openGroup = groupId;
+  state.hiddenByUs = state.hiddenByUs.filter(id => !ids.has(id));
+  state.filtered = fid;
   saveState();
 }
 
-// Unhide only the tabs this add-in hid; tabs you hid yourself stay hidden.
-async function clearFocus() {
-  if (!state.hiddenByUs.length) return;
+async function showAllTabs() {
+  if (state.hiddenByUs.length) {
+    await Excel.run(async ctx => {
+      for (const id of state.hiddenByUs) ctx.workbook.worksheets.getItem(id).visibility = Excel.SheetVisibility.visible;
+      await ctx.sync();
+    });
+  }
+  state.hiddenByUs = [];
+  state.filtered = null;
+  saveState();
+}
+
+async function colorTabs(ids, color) {
+  if (!ids.length) return;
   await Excel.run(async ctx => {
-    for (const id of state.hiddenByUs) ctx.workbook.worksheets.getItem(id).visibility = Excel.SheetVisibility.visible;
+    for (const id of ids) ctx.workbook.worksheets.getItem(id).tabColor = color || "";
     await ctx.sync();
   });
-  state.hiddenByUs = [];
-  saveState();
 }
 
-function addGroup(name) {
-  const id = "g" + Date.now().toString(36);
-  state.groups.push({ id, name, color: COLORS[state.groups.length % COLORS.length], sheetIds: [] });
-  openGroup = id;
+/* ---------- actions ---------- */
+function resetEditing() { ui.adding = ui.renaming = ui.confirmDel = null; ui.coloring = false; }
+
+function openFolder(fid) {
+  resetEditing();
+  ui.view = fid;
+  ui.open = fid === UNFILED ? UNFILED : rootOf(fid);
+  if (state.filter) guarded(() => applyFilter(fid)); else render();
+}
+
+function toggleChip(fid) {
+  if (ui.open === fid) { ui.open = ui.view = null; resetEditing(); render(); }
+  else openFolder(fid);
+}
+
+function goTo(sid) {
+  guarded(async () => {
+    if (state.filter && state.filtered && !deepTabs(state.filtered).some(s => s.id === sid)) {
+      await applyFilter(folderOfSheet(sid), sid); return;
+    }
+    await Excel.run(async ctx => {
+      const s = ctx.workbook.worksheets.getItem(sid);
+      s.visibility = Excel.SheetVisibility.visible;
+      s.activate();
+      await ctx.sync();
+    });
+    state.hiddenByUs = state.hiddenByUs.filter(id => id !== sid);
+    saveState();
+  });
+}
+
+function addFolder(name, parentId) {
+  const id = "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const color = parentId ? null : COLORS[children(null).length % COLORS.length];
+  state.folders.push({ id, name, color, parentId });
   saveState();
+  resetEditing();
+  if (!parentId) { ui.open = ui.view = id; }
   render();
 }
 
-async function deleteGroup(groupId) {
-  const g = state.groups.find(g => g.id === groupId);
-  state.groups = state.groups.filter(x => x.id !== groupId);
+function moveSheet(sid, fid) {
+  if (fid === UNFILED) delete state.assign[sid]; else state.assign[sid] = fid;
   saveState();
-  if (state.focus && openGroup === groupId) await guarded(() => applyFocus(UNGROUPED, activeId));
-  else render();
-  if (g) showError("");
-}
-
-async function moveSheet(sheetId, toGroup) {
-  for (const g of state.groups) g.sheetIds = g.sheetIds.filter(id => id !== sheetId);
-  const target = state.groups.find(g => g.id === toGroup);
-  if (target) target.sheetIds.push(sheetId);
-  saveState();
-  await guarded(async () => {
-    if (target) await colorTabs(target);
-    if (state.focus) await applyFocus(openGroup, activeId);
+  guarded(async () => {
+    await colorTabs([sid], fid === UNFILED ? null : colorOf(fid));
+    if (state.filter && state.filtered) await applyFilter(state.filtered, activeId);
   });
 }
 
-// Color the real Excel tabs to match the group, so the tab bar reads the same way.
-async function colorTabs(group) {
-  if (!group.sheetIds.length) return;
-  await Excel.run(async ctx => {
-    for (const id of group.sheetIds) ctx.workbook.worksheets.getItem(id).tabColor = group.color;
-    await ctx.sync();
+function deleteFolder(fid) {
+  const f = folder(fid); if (!f) return;
+  const parent = f.parentId;
+  for (const c of children(fid)) c.parentId = parent;            // subfolders move up a level
+  const orphanTabs = directTabs(fid).map(s => s.id);
+  for (const sid of orphanTabs) { if (parent) state.assign[sid] = parent; else delete state.assign[sid]; }
+  state.folders = state.folders.filter(x => x.id !== fid);
+  if (!parent) for (const c of children(null)) if (!c.color) c.color = f.color;  // promoted subfolders keep a color
+  saveState();
+  resetEditing();
+  ui.view = parent; ui.open = parent ? rootOf(parent) : null;
+  guarded(async () => {
+    if (!parent) await colorTabs(orphanTabs, null);
+    if (state.filtered === fid) { parent && state.filter ? await applyFilter(parent) : await showAllTabs(); }
   });
+}
+
+function setColor(fid, color) {
+  folder(fid).color = color;
+  ui.coloring = false;
+  saveState();
+  guarded(() => colorTabs(deepTabs(fid).map(s => s.id), color));
 }
 
 /* ---------- render ---------- */
 function render() {
-  const root = $("groups");
-  root.replaceChildren();
-  const all = [...state.groups, { id: UNGROUPED, name: "Ungrouped", color: null }];
+  $("filter").checked = !!state.filter;
+  $("showAll").disabled = !state.filtered && !state.hiddenByUs.length;
 
-  for (const g of all) {
-    const members = membersOf(g.id);
-    if (g.id === UNGROUPED && !members.length && state.groups.length) continue;
-    const isOpen = openGroup === g.id;
-    const wrap = el("section", { className: "group" + (isOpen ? " open" : "") });
+  const showing = $("showing");
+  showing.replaceChildren();
+  if (state.filtered) {
+    showing.append("Tab bar is showing ", el("b", { textContent: pathOf(state.filtered).map(p => p.name).join(" › ") }));
+  } else {
+    showing.append("Tab bar is showing all tabs");
+  }
 
-    // header
-    const head = el("div", { className: "ghead" });
-    head.style.setProperty("--gc", g.color || "var(--line)");
-    if (editing === g.id) {
-      const inp = el("input", { value: g.name, "aria-label": "Group name" });
-      const commit = () => {
-        const v = inp.value.trim();
-        if (v) { g.name = v; saveState(); }
-        editing = null; render();
-      };
-      inp.addEventListener("keydown", e => {
-        if (e.key === "Enter") commit();
-        if (e.key === "Escape") { editing = null; render(); }
-      });
-      inp.addEventListener("blur", commit);
-      head.append(inp);
-      setTimeout(() => { inp.focus(); inp.select(); });
-    } else {
-      head.append(el("button", {
-        className: "gtoggle", "aria-expanded": String(isOpen),
-        on: { click: () => toggleGroup(g.id) }
-      }, [
-        el("span", { className: "caret", "aria-hidden": "true", textContent: "▶" }),
-        el("span", { className: "gname", textContent: g.name }),
-        el("span", { className: "count", textContent: members.length })
-      ]));
-      if (g.id !== UNGROUPED) {
+  // folder bar
+  const bar = $("bar");
+  bar.replaceChildren();
+  const roots = children(null);
+  const unfiled = directTabs(UNFILED);
+  for (const f of roots) bar.append(chip(f.id, f.name, f.color, deepTabs(f.id).length));
+  if (unfiled.length) bar.append(chip(UNFILED, "Unfiled", null, unfiled.length));
+  if (ui.adding === "root") {
+    bar.append(inlineInput("", "Folder name", v => addFolder(v, null), () => { ui.adding = null; render(); }));
+  } else {
+    bar.append(el("button", { className: "chip add", type: "button", title: "New folder",
+      on: { click: () => { resetEditing(); ui.adding = "root"; render(); } } }, [icon("plus"), "Folder"]));
+  }
+
+  // dropdown
+  const drop = $("drop");
+  drop.replaceChildren();
+  if (ui.view) drop.append(dropdown(ui.view));
+  if (!roots.length && ui.adding !== "root") {
+    drop.append(el("p", { className: "empty", textContent: "Click + Folder to make your first folder. Every tab starts in Unfiled; open it and use ⋯ to move tabs into folders." }));
+  }
+}
+
+function chip(fid, name, color, count) {
+  return el("button", {
+    className: "chip", type: "button", title: name, "aria-expanded": String(ui.open === fid),
+    on: { click: () => toggleChip(fid) }
+  }, [icon("folder", color || "#8a9691"), el("span", { className: "nm", textContent: name }), el("span", { className: "ct", textContent: count })]);
+}
+
+function dropdown(fid) {
+  const real = fid !== UNFILED;
+  const card = el("div", { className: "drop" });
+  card.style.setProperty("--fc", (real && colorOf(fid)) || "var(--line)");
+
+  // header: breadcrumb + actions
+  const head = el("div", { className: "dhead" });
+  if (ui.renaming === fid) {
+    head.append(inlineInput(folder(fid).name, "Folder name",
+      v => { folder(fid).name = v; saveState(); ui.renaming = null; render(); },
+      () => { ui.renaming = null; render(); }));
+  } else {
+    const crumbs = el("div", { className: "crumbs" });
+    pathOf(fid).forEach((p, i, arr) => {
+      if (i) crumbs.append(el("span", { className: "sep", textContent: "›" }));
+      const here = i === arr.length - 1;
+      crumbs.append(el("button", { className: "crumb" + (here ? " here" : ""), type: "button", textContent: p.name,
+        on: { click: () => { if (!here) openFolder(p.id); } } }));
+    });
+    head.append(crumbs);
+    if (real) {
+      if (ui.confirmDel === fid) {
+        head.append(el("button", { className: "confirm", type: "button", textContent: "Delete folder?",
+          title: "Tabs and subfolders inside move up a level", on: { click: () => deleteFolder(fid) } }));
+      } else {
         head.append(
-          el("button", { className: "icon", title: "Group color", "aria-label": "Change color of " + g.name, textContent: "◐",
-            on: { click: () => { coloring = coloring === g.id ? null : g.id; render(); } } }),
-          el("button", { className: "icon", title: "Rename", "aria-label": "Rename " + g.name, textContent: "✎",
-            on: { click: () => { editing = g.id; render(); } } }),
-          el("button", { className: "icon del", title: "Delete group (tabs are kept)", "aria-label": "Delete group " + g.name, textContent: "×",
-            on: { click: () => deleteGroup(g.id) } })
+          el("button", { className: "icon", type: "button", title: "New subfolder", "aria-label": "New subfolder",
+            on: { click: () => { resetEditing(); ui.adding = fid; render(); } } }, icon("plus")),
+          el("button", { className: "icon", type: "button", title: "Rename", "aria-label": "Rename folder",
+            on: { click: () => { resetEditing(); ui.renaming = fid; render(); } } }, icon("pen")),
+          !folder(fid).parentId ? el("button", { className: "icon", type: "button", title: "Folder color", "aria-label": "Folder color",
+            on: { click: () => { const c = !ui.coloring; resetEditing(); ui.coloring = c; render(); } } }, icon("dot")) : null,
+          el("button", { className: "icon del", type: "button", title: "Delete folder (keeps its tabs)", "aria-label": "Delete folder",
+            on: { click: () => { resetEditing(); ui.confirmDel = fid; render(); } } }, icon("x"))
         );
       }
     }
-    wrap.append(head);
-
-    if (coloring === g.id) {
-      const row = el("div", { className: "swatches" });
-      for (const c of COLORS) {
-        row.append(el("button", {
-          className: "sw", style: { background: c }, "aria-label": "Color " + c, "aria-pressed": String(g.color === c),
-          on: { click: () => { g.color = c; coloring = null; saveState(); guarded(() => colorTabs(g)); } }
-        }));
-      }
-      wrap.append(row);
-    }
-
-    if (isOpen) {
-      const list = el("ul");
-      if (!members.length) list.append(el("li", { className: "empty", textContent: "No tabs yet. Use ⋯ beside a tab to move it here." }));
-      for (const s of members) {
-        const hiddenByUser = s.visibility !== "Visible" && !state.hiddenByUs.includes(s.id);
-        const btn = el("button", {
-          className: "sheet" + (s.id === activeId ? " active" : ""),
-          title: s.name, on: { click: () => goTo(s.id) }
-        }, [s.name, hiddenByUser ? el("span", { className: "tag", textContent: s.visibility === "VeryHidden" ? "very hidden" : "hidden" }) : null]);
-        if (s.visibility === "VeryHidden") btn.disabled = true;
-
-        const move = el("select", {
-          className: "move", title: "Move to group", "aria-label": "Move " + s.name + " to group",
-          on: { change: e => moveSheet(s.id, e.target.value) }
-        }, [el("option", { value: "", textContent: "⋯", disabled: true, selected: true })]);
-        for (const opt of [...state.groups, { id: UNGROUPED, name: "Ungrouped" }]) {
-          if (opt.id !== g.id) move.append(el("option", { value: opt.id, textContent: "Move to " + opt.name }));
-        }
-        list.append(el("li", {}, [btn, move]));
-      }
-      wrap.append(list);
-    }
-    root.append(wrap);
   }
-  if (!state.groups.length) {
-    root.prepend(el("p", { className: "hint", textContent: "Start by adding a group above, then move tabs into it." }));
-  }
-  $("focus").checked = !!state.focus;
-}
+  card.append(head);
 
-async function toggleGroup(groupId) {
-  if (openGroup === groupId) { openGroup = null; render(); return; }
-  openGroup = groupId;
-  if (state.focus) await guarded(() => applyFocus(groupId, activeId));
-  else render();
+  if (ui.coloring && real) {
+    const row = el("div", { className: "swatches" });
+    for (const c of COLORS) {
+      const b = el("button", { className: "sw", type: "button", "aria-label": "Color " + c, "aria-pressed": String(folder(fid).color === c),
+        on: { click: () => setColor(fid, c) } });
+      b.style.background = c;
+      row.append(b);
+    }
+    card.append(row);
+  }
+
+  const list = el("ul");
+  // subfolders
+  if (real) {
+    for (const sub of children(fid)) {
+      list.append(el("li", {}, el("button", { className: "row", type: "button", on: { click: () => openFolder(sub.id) } }, [
+        icon("folder", colorOf(sub.id)), el("span", { className: "nm", textContent: sub.name }),
+        el("span", { className: "ct", textContent: deepTabs(sub.id).length }), icon("chev")
+      ])));
+    }
+    if (ui.adding === fid) {
+      list.append(el("li", { className: "newsub" }, inlineInput("", "Subfolder name",
+        v => addFolder(v, fid), () => { ui.adding = null; render(); })));
+    }
+  }
+  const tabs = directTabs(fid);
+  if (list.children.length && tabs.length) list.append(el("li", {}, el("hr", { style: "flex:1" })));
+
+  // tabs
+  const targets = [...allFolderPaths(), { id: UNFILED, label: "Unfiled" }];
+  for (const s of tabs) {
+    const userHidden = s.visibility !== "Visible" && !state.hiddenByUs.includes(s.id);
+    const btn = el("button", { className: "row" + (s.id === activeId ? " active" : ""), type: "button", title: s.name,
+      on: { click: () => goTo(s.id) } }, [
+        icon("sheet"), el("span", { className: "nm", textContent: s.name }),
+        userHidden ? el("span", { className: "tag", textContent: s.visibility === "VeryHidden" ? "very hidden" : "hidden" }) : null
+      ]);
+    if (s.visibility === "VeryHidden") btn.disabled = true;
+    const move = el("select", { className: "move", title: "Move to folder", "aria-label": "Move " + s.name + " to folder",
+      on: { change: e => moveSheet(s.id, e.target.value) } },
+      [el("option", { value: "", textContent: "⋯", disabled: true, selected: true })]);
+    for (const t of targets) if (t.id !== fid) move.append(el("option", { value: t.id, textContent: "Move to " + t.label }));
+    list.append(el("li", {}, [btn, move]));
+  }
+  if (!list.children.length) {
+    list.append(el("li", { className: "empty", textContent: real
+      ? "Empty folder. Add a subfolder with +, or open Unfiled and use ⋯ to move tabs here."
+      : "Every tab is filed." }));
+  }
+  card.append(list);
+  return card;
 }
 
 /* ---------- startup ---------- */
@@ -397,20 +497,13 @@ Office.onReady(async info => {
   if (info.host !== Office.HostType.Excel) { showError("This add-in runs in Excel."); return; }
   loadState();
 
-  $("addForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const name = $("newName").value.trim();
-    if (!name) return;
-    $("newName").value = "";
-    addGroup(name);
-  });
-
-  $("focus").addEventListener("change", e => {
-    state.focus = e.target.checked;
+  $("showAll").addEventListener("click", () => { ui.open = ui.view = null; resetEditing(); guarded(showAllTabs); });
+  $("filter").addEventListener("change", e => {
+    state.filter = e.target.checked;
     saveState();
     guarded(async () => {
-      if (state.focus) await applyFocus(openGroup || groupOf(activeId), activeId);
-      else await clearFocus();
+      if (state.filter && ui.view) await applyFilter(ui.view);
+      if (!state.filter) await showAllTabs();
     });
   });
 
@@ -420,11 +513,7 @@ Office.onReady(async info => {
       const ws = ctx.workbook.worksheets;
       ws.onAdded.add(() => refresh());
       ws.onDeleted.add(() => refresh());
-      ws.onActivated.add(async ev => {
-        activeId = ev.worksheetId;
-        if (!busy) openGroup = groupOf(activeId);
-        render();
-      });
+      ws.onActivated.add(async ev => { activeId = ev.worksheetId; render(); });
       if (ws.onNameChanged) ws.onNameChanged.add(() => refresh());
       await ctx.sync();
     });
